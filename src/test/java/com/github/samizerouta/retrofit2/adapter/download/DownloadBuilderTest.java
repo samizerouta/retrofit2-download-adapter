@@ -27,8 +27,7 @@ import retrofit2.Response;
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.*;
 
 public final class DownloadBuilderTest {
     private final static Call<ResponseBody> CALL = new Call<ResponseBody>() {
@@ -79,6 +78,9 @@ public final class DownloadBuilderTest {
     public void defaultValues() {
         assertSame(CALL, builder.delegate);
         assertSame(Download.CURRENT_THREAD_EXECUTOR, builder.callbackExecutor);
+        assertSame(builder.checksumAlgorithm, ChecksumAlgorithm.NONE);
+        assertNull(builder.checksumValidationCallback);
+        assertTrue(builder.filters.isEmpty());
         assertSame(ProgressListener.NONE, builder.progressListener);
         assertNull(builder.tag);
         assertNull(builder.file);

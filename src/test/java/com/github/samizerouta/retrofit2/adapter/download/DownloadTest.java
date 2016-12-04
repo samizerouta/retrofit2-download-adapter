@@ -19,8 +19,7 @@ package com.github.samizerouta.retrofit2.adapter.download;
 import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okio.BufferedSource;
-import okio.Okio;
+import okio.*;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,6 +33,7 @@ import retrofit2.http.Streaming;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -131,6 +131,130 @@ public final class DownloadTest {
         assertFalse(responseRef.get().isSuccessful());
     }
 
+    @Test
+    public void validChecksumMD5() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+
+        server.enqueue(new MockResponse().setBody(original));
+
+        service.download()
+                .checksum(ChecksumAlgorithm.MD5, new ChecksumValidationCallback() {
+                    @Override
+                    public boolean validate(Download download, String checksum) {
+                        return hash(original, ChecksumAlgorithm.MD5).equals(checksum);
+                    }
+                })
+                .to(file)
+                .execute();
+    }
+
+    @Test
+    public void validChecksumSHA1() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+
+        server.enqueue(new MockResponse().setBody(original));
+
+        service.download()
+                .checksum(ChecksumAlgorithm.SHA1, new ChecksumValidationCallback() {
+                    @Override
+                    public boolean validate(Download download, String checksum) {
+                        return hash(original, ChecksumAlgorithm.SHA1).equals(checksum);
+                    }
+                })
+                .to(file)
+                .execute();
+    }
+
+    @Test
+    public void validChecksumSHA256() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+
+        server.enqueue(new MockResponse().setBody(original));
+
+        service.download()
+                .checksum(ChecksumAlgorithm.SHA256, new ChecksumValidationCallback() {
+                    @Override
+                    public boolean validate(Download download, String checksum) {
+                        return hash(original, ChecksumAlgorithm.SHA256).equals(checksum);
+                    }
+                })
+                .to(file)
+                .execute();
+    }
+
+    @Test(expected = InvalidChecksumException.class)
+    public void invalidChecksum() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        server.enqueue(new MockResponse().setBody(original));
+
+        service.download()
+                .checksum(ChecksumAlgorithm.MD5, new ChecksumValidationCallback() {
+                    @Override
+                    public boolean validate(Download download, String checksum) {
+                        return hash("Hi", ChecksumAlgorithm.MD5).equals(checksum);
+                    }
+                })
+                .to(file)
+                .execute();
+    }
+
+    @Test
+    public void filter() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        server.enqueue(new MockResponse().setBody(original));
+
+        service.download()
+                .addFilter(new Filter() {
+                    @Override
+                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                        return Okio.buffer(new GzipSink(Okio.sink(downstream))).outputStream();
+                    }
+                })
+                .to(file)
+                .execute();
+
+        String result = Okio.buffer(new GzipSource(Okio.source(file))).readUtf8();
+
+        assertEquals(original, result);
+    }
+
+    @Test
+    public void multipleFilters() throws IOException {
+        final String original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
+                "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        server.enqueue(new MockResponse().setBody(original));
+
+        final HashingSink hashingSink[] = new HashingSink[1];
+
+        service.download()
+                .checksum(ChecksumAlgorithm.SHA1, new ChecksumValidationCallback() {
+                    @Override
+                    public boolean validate(Download download, String checksum) {
+                        return hashingSink[0].hash().hex().equals(checksum);
+                    }
+                })
+                .addFilter(new Filter() {
+                    @Override
+                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                        hashingSink[0] = HashingSink.sha1(Okio.sink(downstream));
+                        return Okio.buffer(hashingSink[0]).outputStream();
+                    }
+                })
+                .addFilter(new Filter() {
+                    @Override
+                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                        return Okio.buffer(new GzipSink(Okio.sink(downstream))).outputStream();
+                    }
+                })
+                .to(file)
+                .execute();
+    }
+
     private String readFile() throws IOException {
         BufferedSource source = null;
         try {
@@ -139,5 +263,22 @@ public final class DownloadTest {
         } finally {
             Util.closeQuietly(source);
         }
+    }
+
+    private String hash(String s, ChecksumAlgorithm algorithm) {
+        ByteString byteString = ByteString.encodeUtf8(s);
+
+        switch (algorithm) {
+            case MD5:
+                byteString = byteString.md5();
+                break;
+            case SHA1:
+                byteString = byteString.sha1();
+                break;
+            case SHA256:
+                byteString = byteString.sha256();
+        }
+
+        return byteString.hex();
     }
 }

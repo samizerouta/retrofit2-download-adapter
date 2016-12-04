@@ -23,8 +23,10 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -38,6 +40,9 @@ public final class Download implements Call<ResponseBody> {
 
     final Call<ResponseBody> delegate;
     final Executor callbackExecutor;
+    final ChecksumAlgorithm checksumAlgorithm;
+    final ChecksumValidationCallback checksumValidationCallback;
+    final List<Filter> filters;
     final ProgressListener progressListener;
     final Object tag;
     final File file;
@@ -47,6 +52,9 @@ public final class Download implements Call<ResponseBody> {
     Download(Builder builder) {
         delegate = builder.delegate;
         callbackExecutor = builder.callbackExecutor;
+        checksumAlgorithm = builder.checksumAlgorithm;
+        checksumValidationCallback = builder.checksumValidationCallback;
+        filters = Collections.unmodifiableList(new ArrayList<>(builder.filters));
         progressListener = builder.progressListener;
         tag = builder.tag;
         file = builder.file;
@@ -64,19 +72,9 @@ public final class Download implements Call<ResponseBody> {
             return response;
         }
 
-        BufferedSink sink = null;
-        Source source = null;
+        copyToFile(response.body());
 
-        try {
-            sink = Okio.buffer(Okio.sink(file));
-            source = source(response.body());
-
-            sink.writeAll(source);
-
-            return response;
-        } finally {
-            Util.closeQuietly(sink, source);
-        }
+        return response;
     }
 
     @Override
@@ -89,19 +87,11 @@ public final class Download implements Call<ResponseBody> {
                 } else if (!response.isSuccessful()) {
                     callResponse(response);
                 } else {
-                    BufferedSink sink = null;
-                    Source source = null;
-
                     try {
-                        sink = Okio.buffer(Okio.sink(file));
-                        source = source(response.body());
-
-                        sink.writeAll(source);
+                        copyToFile(response.body());
                         callResponse(response);
                     } catch (Throwable throwable) {
                         callFailure(throwable);
-                    } finally {
-                        Util.closeQuietly(sink, source);
                     }
                 }
             }
@@ -161,12 +151,60 @@ public final class Download implements Call<ResponseBody> {
         return new Builder(this);
     }
 
+    public ChecksumAlgorithm checksumAlgorithm() {
+        return checksumAlgorithm;
+    }
+
     public Object tag() {
         return tag;
     }
 
     public File file() {
         return file;
+    }
+
+    private void copyToFile(ResponseBody body) throws IOException {
+        Source input = null;
+        Closeable output = null;
+
+        try {
+            output = new FileOutputStream(file);
+
+            for (int i = filters.size(); i > 0; i--) {
+                Filter filter = filters.get(i - 1);
+                output = filter.newFilter((OutputStream) output);
+            }
+
+            input = source(body);
+            output = Okio.sink((OutputStream) output);
+
+            HashingSink hashingSink = null;
+
+            switch (checksumAlgorithm) {
+                case MD5:
+                    output = hashingSink = HashingSink.md5((Sink) output);
+                    break;
+                case SHA1:
+                    output = hashingSink = HashingSink.sha1((Sink) output);
+                    break;
+                case SHA256:
+                    output = hashingSink = HashingSink.sha256((Sink) output);
+                    break;
+            }
+
+            BufferedSink bufferedSink = Okio.buffer((Sink) output);
+            output = bufferedSink;
+
+            bufferedSink.writeAll(input);
+            bufferedSink.flush();
+
+            if (hashingSink != null
+                    && !checksumValidationCallback.validate(this, hashingSink.hash().hex())) {
+                throw new InvalidChecksumException();
+            }
+        } finally {
+            Util.closeQuietly(input, output);
+        }
     }
 
     private Source source(final ResponseBody body) {
@@ -203,6 +241,9 @@ public final class Download implements Call<ResponseBody> {
     public static final class Builder {
         Call<ResponseBody> delegate;
         Executor callbackExecutor;
+        ChecksumAlgorithm checksumAlgorithm;
+        ChecksumValidationCallback checksumValidationCallback;
+        List<Filter> filters = new ArrayList<>();
         ProgressListener progressListener;
         Object tag;
         File file;
@@ -210,19 +251,34 @@ public final class Download implements Call<ResponseBody> {
         Builder(Call<ResponseBody> delegate) {
             this.delegate = delegate;
             this.callbackExecutor = CURRENT_THREAD_EXECUTOR;
+            this.checksumAlgorithm = ChecksumAlgorithm.NONE;
             this.progressListener = ProgressListener.NONE;
         }
 
         Builder(Download download) {
-            this.delegate = download.delegate.clone();
-            this.callbackExecutor = download.callbackExecutor;
-            this.progressListener = download.progressListener;
-            this.tag = download.tag;
-            this.file = download.file;
+            delegate = download.delegate.clone();
+            callbackExecutor = download.callbackExecutor;
+            checksumAlgorithm = download.checksumAlgorithm;
+            progressListener = download.progressListener;
+            checksumValidationCallback = download.checksumValidationCallback;
+            filters.addAll(download.filters);
+            tag = download.tag;
+            file = download.file;
         }
 
         public Builder callbackExecutor(Executor callbackExecutor) {
             this.callbackExecutor = Util.checkNotNull(callbackExecutor, "callbackExecutor == null");
+            return this;
+        }
+
+        public Builder checksum(ChecksumAlgorithm algorithm, ChecksumValidationCallback validationCallback) {
+            this.checksumAlgorithm = Util.checkNotNull(algorithm, "algorithm == null");
+            this.checksumValidationCallback = Util.checkNotNull(validationCallback, "validationCallback = null");
+            return this;
+        }
+
+        public Builder addFilter(Filter filter) {
+            this.filters.add(Util.checkNotNull(filter, "newFilter == null"));
             return this;
         }
 

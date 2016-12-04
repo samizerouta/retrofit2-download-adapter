@@ -19,7 +19,7 @@
     <scm>
         <url>https://github.com/samizerouta/retrofit2-download-adapter/</url>
         <connection>scm:git:https://github.com/samizerouta/retrofit2-download-adapter.git</connection>
-        <developerConnection>scm:git:git@github.com:samizerouta/retrofit2-download-adapter.git</developerConnection>
+        <developerConnection>scm:git:git://github.com:samizerouta/retrofit2-download-adapter.git</developerConnection>
     </scm>
 
     <issueManagement>
