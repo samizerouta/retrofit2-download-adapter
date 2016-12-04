@@ -1,2 +1,142 @@
-# retrofit2-download-adapter
+Retrofit 2 Download Adapter
+===========================
+
 A file download specialized call for Retrofit 2.
+
+Usage
+-----
+
+### Basics ###
+
+Use `Download.Builder` as return type of the retrofit method, `@Streaming`annotation is required.
+
+```java
+interface Service {
+  @Streaming
+  @GET
+  Download.Builder download(@Url String url);
+}
+```
+
+Add `DownloadCallAdapterFactory` when setting up retrofit, and then create the service as usual.
+
+```java
+Retrofit retrofit = new Retrofit.Builder()
+  ...
+  .addCallAdapterFactory(DownloadCallAdapterFactory.create())
+  ...
+  .build();
+```
+
+Specify the destination file with `.to`, a regular retrofit `Call<ReponseBody>` will be returned.
+To start the download use `.execute` or `.enqueue`.
+
+```java
+File myFile = ...
+service.download(someUrl)
+  .to(myFile)
+  .enqueue(new Callback<ResponseBody>() {
+    @Override
+    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+      ...
+    }
+
+    @Override
+    public void onFailure(Call<ResponseBody> call, Throwable t) {
+      ...
+    }
+  });
+```
+
+### Progress ###
+
+Set a `ProgressListener`to be notified of the download advancement.
+
+```java
+service.download(someUrl)
+  .onProgress(new ProgressListener() {
+    @Override
+    public void onProgress(Download download, long bytesRead, long totalBytesRead, long contentLength) {
+      dialog.setProgress((int) (totalBytesRead * 100f / contentLength));
+    }
+  })
+  .to(...)
+  .enqueue(...)
+```
+
+### Tag ###
+
+Extra data can be stored with `.tag`, it can be handy in some situation.
+
+```java
+MyFilePojo myFilePojo = ...
+service.download(someUrl)
+  .tag(myFilePojo)
+  .to(...)
+  .enqueue(new Callback<ResponseBody>() {
+    @Override
+    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+      Download download = (Download) call;
+      MyFilePojo myFilePojo = (MyFilePojo) download.tag();
+      openFile(download.file(), myFilePojo.mimeType());
+    }
+
+    @Override
+    public void onFailure(Call<ResponseBody> call, Throwable t) {
+      ...
+    }
+  });
+```
+
+### Checksum ###
+
+```java
+final String expectedChecksum = ...
+service.download(someUrl)
+  .checksum(ChecksumAlgorithm.MD5, new ChecksumValidationCallback() {
+    @Override
+    public boolean validate(Download download, String checksum) {
+      return expectedChecksum.equals(checksum);
+    }
+  })
+  .to(...)
+  .enqueue(...);
+```
+
+### Filters ###
+
+Stream can be modified before being written to the file with `Filter`s.
+
+```java
+service.download(someUrl)
+  .addFilter(new Filter() {
+    @Override
+    public OutputStream create(OutputStream outputStream) throws IOException {
+      return new CipherOutputStream(outputStream, new MyFancyCipher());
+    }
+  })
+  .to(...)
+  .enqueue(...);
+```
+
+Download
+--------
+
+Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
+
+License
+-------
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+[snap]: https://oss.sonatype.org/content/repositories/snapshots/
