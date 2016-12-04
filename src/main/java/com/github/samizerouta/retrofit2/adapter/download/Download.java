@@ -172,7 +172,7 @@ public final class Download implements Call<ResponseBody> {
 
             for (int i = filters.size(); i > 0; i--) {
                 Filter filter = filters.get(i - 1);
-                output = filter.newFilter((OutputStream) output);
+                output = filter.create((OutputStream) output);
             }
 
             input = source(body);
@@ -278,7 +278,7 @@ public final class Download implements Call<ResponseBody> {
         }
 
         public Builder addFilter(Filter filter) {
-            this.filters.add(Util.checkNotNull(filter, "newFilter == null"));
+            this.filters.add(Util.checkNotNull(filter, "filter == null"));
             return this;
         }
 

@@ -20,5 +20,5 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public interface Filter {
-    OutputStream newFilter(OutputStream downstream) throws IOException;
+    OutputStream create(OutputStream downstream) throws IOException;
 }

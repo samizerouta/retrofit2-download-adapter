@@ -211,7 +211,7 @@ public final class DownloadTest {
         service.download()
                 .addFilter(new Filter() {
                     @Override
-                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                    public OutputStream create(OutputStream downstream) throws IOException {
                         return Okio.buffer(new GzipSink(Okio.sink(downstream))).outputStream();
                     }
                 })
@@ -240,14 +240,14 @@ public final class DownloadTest {
                 })
                 .addFilter(new Filter() {
                     @Override
-                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                    public OutputStream create(OutputStream downstream) throws IOException {
                         hashingSink[0] = HashingSink.sha1(Okio.sink(downstream));
                         return Okio.buffer(hashingSink[0]).outputStream();
                     }
                 })
                 .addFilter(new Filter() {
                     @Override
-                    public OutputStream newFilter(OutputStream downstream) throws IOException {
+                    public OutputStream create(OutputStream downstream) throws IOException {
                         return Okio.buffer(new GzipSink(Okio.sink(downstream))).outputStream();
                     }
                 })
