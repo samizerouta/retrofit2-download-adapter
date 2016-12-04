@@ -16,26 +16,12 @@
 
 package com.github.samizerouta.retrofit2.adapter.download;
 
-import java.io.OutputStream;
+public interface ProgressListener {
+    ProgressListener NONE = new ProgressListener() {
+        @Override
+        public void onProgress(Download download, long bytesRead, long totalBytesRead, long contentLength) {
+        }
+    };
 
-public interface DownloadCall extends Cloneable {
-
-    interface Callback {
-
-        void onSuccess(DownloadCall call);
-
-        void onFailure(DownloadCall call, Throwable throwable);
-
-        void onProgress(DownloadCall call, long totalBytesDownloaded, long totalBytes);
-    }
-
-    void enqueue(OutputStream to, Callback callback);
-
-    boolean isExecuted();
-
-    void cancel();
-
-    boolean isCanceled();
-
-    DownloadCall clone();
+    void onProgress(Download download, long bytesRead, long totalBytesRead, long contentLength);
 }

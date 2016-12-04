@@ -30,19 +30,18 @@ final class Util {
         return object;
     }
 
-    static void closeQuietly(Closeable closeable) {
-        if (closeable == null) {
-            return;
-        }
-
-        try {
-            closeable.close();
-        } catch (Throwable ignored) {
+    static void closeQuietly(Closeable... closeables) {
+        for (Closeable closeable : closeables) {
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (Throwable ignored) {
+                }
+            }
         }
     }
 
-    static boolean isAnnotationPresent(Annotation[] annotations,
-                                       Class<? extends Annotation> cls) {
+    static boolean isAnnotationPresent(Annotation[] annotations, Class<? extends Annotation> cls) {
         for (Annotation annotation : annotations) {
             if (cls.isInstance(annotation)) {
                 return true;

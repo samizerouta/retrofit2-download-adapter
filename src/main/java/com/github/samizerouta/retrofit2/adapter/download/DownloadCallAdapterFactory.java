@@ -25,8 +25,6 @@ import retrofit2.http.Streaming;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 
-import static com.github.samizerouta.retrofit2.adapter.download.Util.isAnnotationPresent;
-
 public final class DownloadCallAdapterFactory extends CallAdapter.Factory {
     public static DownloadCallAdapterFactory create() {
         return new DownloadCallAdapterFactory();
@@ -36,16 +34,16 @@ public final class DownloadCallAdapterFactory extends CallAdapter.Factory {
     }
 
     @Override
-    public CallAdapter<?> get(Type type, Annotation[] annotations, final Retrofit retrofit) {
-        if (getRawType(type) != DownloadCall.class) {
+    public CallAdapter<?> get(Type returnType, Annotation[] annotations, final Retrofit retrofit) {
+        if (returnType != Download.Builder.class) {
             return null;
         }
 
-        if (!isAnnotationPresent(annotations, Streaming.class)) {
-            throw new IllegalArgumentException("DownloadCall requires @Streaming");
+        if (!Util.isAnnotationPresent(annotations, Streaming.class)) {
+            throw new IllegalArgumentException("Download.Builder requires @Streaming.");
         }
 
-        return new CallAdapter<DownloadCall>() {
+        return new CallAdapter<Download.Builder>() {
             @Override
             public Type responseType() {
                 return ResponseBody.class;
@@ -53,8 +51,9 @@ public final class DownloadCallAdapterFactory extends CallAdapter.Factory {
 
             @SuppressWarnings("unchecked")
             @Override
-            public <R> DownloadCall adapt(Call<R> call) {
-                return new RealDownloadCall((Call<ResponseBody>) call, retrofit.callbackExecutor());
+            public <R> Download.Builder adapt(Call<R> call) {
+                return new Download.Builder((Call<ResponseBody>) call)
+                        .callbackExecutor(retrofit.callbackExecutor() == null ? Download.CURRENT_THREAD_EXECUTOR : retrofit.callbackExecutor());
             }
         };
     }
