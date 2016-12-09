@@ -16,8 +16,7 @@
 
 package com.github.samizerouta.retrofit2.adapter.download;
 
-import java.io.IOException;
+import okio.Sink;
 
-public interface Filter<O> {
-    O create(Download download, O downstream) throws IOException;
+public interface SinkFilter extends Filter<Sink> {
 }

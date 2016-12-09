@@ -24,6 +24,7 @@ import retrofit2.http.Streaming;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.concurrent.Executor;
 
 public final class DownloadCallAdapterFactory extends CallAdapter.Factory {
     public static DownloadCallAdapterFactory create() {
@@ -52,8 +53,15 @@ public final class DownloadCallAdapterFactory extends CallAdapter.Factory {
             @SuppressWarnings("unchecked")
             @Override
             public <R> Download.Builder adapt(Call<R> call) {
-                return new Download.Builder((Call<ResponseBody>) call)
-                        .callbackExecutor(retrofit.callbackExecutor() == null ? Download.CURRENT_THREAD_EXECUTOR : retrofit.callbackExecutor());
+                Download.Builder builder = new Download.Builder((Call<ResponseBody>) call);
+
+                Executor callbackExecutor = retrofit.callbackExecutor();
+
+                if (callbackExecutor != null) {
+                    builder.callbackExecutor(callbackExecutor);
+                }
+
+                return builder;
             }
         };
     }

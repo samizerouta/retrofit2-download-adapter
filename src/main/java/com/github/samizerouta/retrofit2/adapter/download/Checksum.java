@@ -16,6 +16,9 @@
 
 package com.github.samizerouta.retrofit2.adapter.download;
 
-public interface ChecksumValidationCallback {
-    boolean validate(Download download, String checksum);
+public enum Checksum {
+    MD5,
+    SHA1,
+    SHA256,
+    NONE
 }

@@ -11,7 +11,7 @@
 
     <groupId>com.github.samizerouta.retrofit</groupId>
     <artifactId>retrofit2-download-adapter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>Retrofit 2 Download Adapter</name>
     <description>A file download specialized call for Retrofit 2.</description>
     <inceptionYear>2016</inceptionYear>

@@ -16,9 +16,17 @@
 
 package com.github.samizerouta.retrofit2.adapter.download;
 
-public enum ChecksumAlgorithm {
-    MD5,
-    SHA1,
-    SHA256,
-    NONE
+import java.io.IOException;
+
+public interface ValidationCallback {
+    ValidationCallback NONE = new ValidationCallback() {
+        @Override
+        public void validate(Download download, String checksum) throws IOException {
+        }
+    };
+
+    /**
+     * Validate the file download.
+     */
+    void validate(Download download, String checksum) throws IOException;
 }

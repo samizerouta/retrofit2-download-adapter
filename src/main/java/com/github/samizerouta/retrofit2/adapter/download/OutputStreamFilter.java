@@ -16,7 +16,7 @@
 
 package com.github.samizerouta.retrofit2.adapter.download;
 
-import java.io.IOException;
+import java.io.OutputStream;
 
-public final class InvalidChecksumException extends IOException {
+public interface OutputStreamFilter extends Filter<OutputStream> {
 }

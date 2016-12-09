@@ -78,8 +78,8 @@ public final class DownloadBuilderTest {
     public void defaultValues() {
         assertSame(CALL, builder.delegate);
         assertSame(Download.CURRENT_THREAD_EXECUTOR, builder.callbackExecutor);
-        assertSame(builder.checksumAlgorithm, ChecksumAlgorithm.NONE);
-        assertNull(builder.checksumValidationCallback);
+        assertSame(builder.checksum, Checksum.NONE);
+        assertSame(builder.validationCallback, ValidationCallback.NONE);
         assertTrue(builder.filters.isEmpty());
         assertSame(ProgressListener.NONE, builder.progressListener);
         assertNull(builder.tag);
