@@ -26,6 +26,8 @@ Retrofit retrofit = new Retrofit.Builder()
   .addCallAdapterFactory(DownloadCallAdapterFactory.create())
   ...
   .build();
+  
+Service service = retrofit.create(Service.class);
 ```
 
 Specify the destination file with `.to`, a regular retrofit `Call<ReponseBody>` will be returned.
@@ -54,7 +56,7 @@ Set a `ProgressListener`to be notified of the download advancement.
 
 ```java
 service.download(someUrl)
-  .onProgress(new ProgressListener() {
+  .progress(new ProgressListener() {
     @Override
     public void onProgress(Download download, long bytesRead, long totalBytesRead, long contentLength) {
       dialog.setProgress((int) (totalBytesRead * 100f / contentLength));
@@ -66,7 +68,7 @@ service.download(someUrl)
 
 ### Tag ###
 
-Extra data can be stored with `.tag`, it can be handy in some situation.
+Extra data can be stored with `.tag`, it can be handy in some situations.
 
 ```java
 MyFilePojo myFilePojo = ...
@@ -88,15 +90,19 @@ service.download(someUrl)
   });
 ```
 
-### Checksum ###
+### Validation ###
+
+Validate the download when finished.
 
 ```java
 final String expectedChecksum = ...
 service.download(someUrl)
-  .checksum(ChecksumAlgorithm.MD5, new ChecksumValidationCallback() {
+  .validate(Checksum.MD5, new ValidationCallback() {
     @Override
-    public boolean validate(Download download, String checksum) {
-      return expectedChecksum.equals(checksum);
+    public void validate(Download download, String checksum) throw IOException {
+      if (!expectedChecksum.equals(checksum)) {
+        throw new IOException("Invalid checksum");
+      }
     }
   })
   .to(...)
@@ -109,9 +115,9 @@ Stream can be modified before being written to the file with `Filter`s.
 
 ```java
 service.download(someUrl)
-  .addFilter(new Filter() {
+  .addFilter(new OutputStreamFilter() {
     @Override
-    public OutputStream create(OutputStream outputStream) throws IOException {
+    public OutputStream create(Download download, OutputStream downstream) throws IOException {
       return new CipherOutputStream(outputStream, new MyFancyCipher());
     }
   })
