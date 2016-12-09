@@ -118,7 +118,7 @@ service.download(someUrl)
   .addFilter(new OutputStreamFilter() {
     @Override
     public OutputStream create(Download download, OutputStream downstream) throws IOException {
-      return new CipherOutputStream(outputStream, new MyFancyCipher());
+      return new CipherOutputStream(downstream, new MyFancyCipher());
     }
   })
   .to(...)
@@ -127,6 +127,22 @@ service.download(someUrl)
 
 Download
 --------
+
+[The latest JAR][1]
+
+or maven
+```xml
+<dependency>
+  <groupId>com.github.samizerouta.retrofit</groupId>
+  <artifactId>retrofit2-download-adapter</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
+
+or gradle
+```groovy
+compile 'com.github.samizerouta.retrofit:retrofit2-download-adapter:1.0.0'
+```
 
 Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
 
@@ -145,4 +161,5 @@ License
     See the License for the specific language governing permissions and
     limitations under the License.
 
+[1]: https://search.maven.org/remote_content?g=com.github.samizerouta.retrofit&a=retrofit2-download-adapter&v=LATEST
 [snap]: https://oss.sonatype.org/content/repositories/snapshots/
